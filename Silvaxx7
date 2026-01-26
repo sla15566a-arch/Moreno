@@ -1,0 +1,278 @@
+-- Silvaxx7 Xit | FIX TOTAL: Aimbot, Menu (P) e Arrastar
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- CONFIGURAÇÕES
+local cfg = {
+	Aimbot = false,
+	AimKey = Enum.UserInputType.MouseButton2,
+	WallCheck = true,
+	TeamCheck = false,
+	FOVSize = 150, 
+	ESPOn = false,
+	BoxOn = false,
+	Alvo = "Head",
+	MenuKey = Enum.KeyCode.P
+}
+
+-- GUI PRINCIPAL
+local gui = Instance.new("ScreenGui", PlayerGui)
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Name = "SilvaxxMenu"
+main.Size = UDim2.fromOffset(720, 420)
+main.Position = UDim2.fromScale(0.5, 0.5)
+main.AnchorPoint = Vector2.new(0.5, 0.5)
+main.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+main.Active = true
+Instance.new("UICorner", main)
+
+-- SISTEMA DE ARRASTAR
+local dragging, dragInput, dragStart, startPos
+main.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = main.Position
+	end
+end)
+main.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+end)
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+
+-- SIDEBAR
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.fromOffset(170, 420)
+sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Instance.new("UICorner", sidebar)
+
+local title = Instance.new("TextLabel", sidebar)
+title.Size = UDim2.new(1, 0, 0, 60)
+title.Position = UDim2.new(0, 0, 0, 15)
+title.Text = "Silvaxx7 Xit"
+title.TextColor3 = Color3.fromRGB(220, 40, 40)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 28
+
+local function sideBtn(text, y)
+	local b = Instance.new("TextButton", sidebar)
+	b.Size = UDim2.fromOffset(140, 45)
+	b.Position = UDim2.fromOffset(15, y)
+	b.Text = text
+	b.Font = Enum.Font.SourceSansBold
+	b.TextSize = 22 
+	b.TextColor3 = Color3.new(1, 1, 1)
+	b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	Instance.new("UICorner", b)
+	return b
+end
+
+local combatBtn = sideBtn("COMBATE", 100)
+local visualBtn = sideBtn("VISUAL", 160)
+
+local content = Instance.new("Frame", main)
+content.Position = UDim2.fromOffset(190, 20)
+content.Size = UDim2.new(1, -210, 1, -40)
+content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Instance.new("UICorner", content)
+
+local combatFrame = Instance.new("Frame", content)
+combatFrame.Size = UDim2.fromScale(1, 1)
+combatFrame.BackgroundTransparency = 1
+
+local visualFrame = Instance.new("Frame", content)
+visualFrame.Size = UDim2.fromScale(1, 1)
+visualFrame.BackgroundTransparency = 1
+visualFrame.Visible = false
+
+combatBtn.MouseButton1Click:Connect(function() combatFrame.Visible = true visualFrame.Visible = false end)
+visualBtn.MouseButton1Click:Connect(function() combatFrame.Visible = false visualFrame.Visible = true end)
+
+-- UI HELPERS
+local function createToggle(parent, text, y, default, callback)
+	local label = Instance.new("TextLabel", parent)
+	label.Position = UDim2.fromOffset(20, y)
+	label.Size = UDim2.fromOffset(300, 34)
+	label.Text = text
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 19
+	label.TextXAlignment = Enum.TextXAlignment.Left
+
+	local btn = Instance.new("TextButton", parent)
+	btn.Position = UDim2.fromOffset(360, y + 7)
+	btn.Size = UDim2.fromOffset(46, 22)
+	btn.BackgroundColor3 = default and Color3.fromRGB(220, 40, 40) or Color3.fromRGB(50, 50, 50)
+	btn.Text = ""
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+
+	btn.MouseButton1Click:Connect(function()
+		default = not default
+		btn.BackgroundColor3 = default and Color3.fromRGB(220, 40, 40) or Color3.fromRGB(50, 50, 50)
+		callback(default)
+	end)
+end
+
+local isBinding = false
+local function createKeybind(parent, text, y, default, callback)
+	local label = Instance.new("TextLabel", parent)
+	label.Position = UDim2.fromOffset(20, y)
+	label.Size = UDim2.fromOffset(300, 34)
+	label.Text = text
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.SourceSansBold
+	label.TextSize = 19
+	label.TextXAlignment = Enum.TextXAlignment.Left
+
+	local btn = Instance.new("TextButton", parent)
+	btn.Position = UDim2.fromOffset(360, y)
+	btn.Size = UDim2.fromOffset(100, 30)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.Text = default.Name
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.SourceSansBold
+	Instance.new("UICorner", btn)
+
+	btn.MouseButton1Click:Connect(function()
+		isBinding = true
+		btn.Text = "..."
+		local connection
+		connection = UIS.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType.MouseButton2 then
+				local key = (input.UserInputType == Enum.UserInputType.Keyboard) and input.KeyCode or input.UserInputType
+				btn.Text = key.Name
+				callback(key)
+				isBinding = false
+				connection:Disconnect()
+			end
+		end)
+	end)
+end
+
+-- MONTAGEM DO MENU
+createToggle(combatFrame, "Ativar Aimbot", 20, cfg.Aimbot, function(v) cfg.Aimbot = v end)
+createKeybind(combatFrame, "Tecla do Aim", 60, cfg.AimKey, function(v) cfg.AimKey = v end)
+createToggle(combatFrame, "Wall Check (Muralha)", 100, cfg.WallCheck, function(v) cfg.WallCheck = v end)
+createToggle(combatFrame, "Team Check", 140, cfg.TeamCheck, function(v) cfg.TeamCheck = v end)
+createToggle(visualFrame, "Ativar ESP (Glow)", 20, cfg.ESPOn, function(v) cfg.ESPOn = v end)
+createToggle(visualFrame, "Ativar Box 3D", 60, cfg.BoxOn, function(v) cfg.BoxOn = v end)
+
+-- ================= NOVA LÓGICA AIMBOT (DO SCRIPT QUE VOCÊ ENVIOU) =================
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+rayParams.IgnoreWater = true
+
+local function getCharPart(char)
+	return char:FindFirstChild(cfg.Alvo) or char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+end
+
+RunService.RenderStepped:Connect(function()
+	if not cfg.Aimbot then return end
+	
+	-- Verifica se a tecla de mira está pressionada
+	local isPressed = false
+	if cfg.AimKey.Name:find("MouseButton") then
+		isPressed = UIS:IsMouseButtonPressed(cfg.AimKey)
+	else
+		isPressed = UIS:IsKeyDown(cfg.AimKey)
+	end
+	
+	if not isPressed then return end
+
+	local camPos = Camera.CFrame.Position
+	local best, dist = nil, math.huge
+
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= player and (not cfg.TeamCheck or plr.Team ~= player.Team) then
+			local char = plr.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			local part = char and getCharPart(char)
+			
+			if hum and hum.Health > 0 and part then
+				-- Wall Check do Script Enviado
+				if cfg.WallCheck then
+					rayParams.FilterDescendantsInstances = {player.Character, char}
+					local r = Workspace:Raycast(camPos, part.Position - camPos, rayParams)
+					if r and not r.Instance:IsDescendantOf(char) then continue end
+				end
+
+				local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+				if onScreen then
+					local mousePos = UIS:GetMouseLocation()
+					local delta = Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)
+					
+					-- Checagem de FOV
+					if delta.Magnitude <= cfg.FOVSize then
+						local d = (camPos - part.Position).Magnitude
+						if d < dist then
+							dist = d
+							best = part
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if best then
+		-- O "Grude" Real: CFrame.lookAt
+		Camera.CFrame = CFrame.lookAt(camPos, best.Position)
+	end
+end)
+
+-- ================= LÓGICA VISUAL (Mantida) =================
+local function applyVisuals(plr)
+	RunService.Heartbeat:Connect(function()
+		if not plr.Character then return end
+		
+		local hl = plr.Character:FindFirstChild("SilvaxxHL")
+		if cfg.ESPOn and plr ~= player and (not cfg.TeamCheck or plr.Team ~= player.Team) then
+			if not hl then
+				hl = Instance.new("Highlight", plr.Character)
+				hl.Name = "SilvaxxHL"
+				hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			end
+		elseif hl then hl:Destroy() end
+
+		local box = plr.Character:FindFirstChild("SilvaxxBox")
+		if cfg.BoxOn and plr ~= player and (not cfg.TeamCheck or plr.Team ~= player.Team) then
+			if not box then
+				box = Instance.new("SelectionBox", plr.Character)
+				box.Name = "SilvaxxBox"
+				box.Adornee = plr.Character
+				box.AlwaysOnTop = true
+				box.SurfaceTransparency = 0.8
+			end
+		elseif box then box:Destroy() end
+	end)
+end
+
+for _, p in pairs(Players:GetPlayers()) do applyVisuals(p) end
+Players.PlayerAdded:Connect(applyVisuals)
+
+UIS.InputBegan:Connect(function(i, gp)
+	if gp then return end
+	if i.KeyCode == cfg.MenuKey and not isBinding then
+		main.Visible = not main.Visible
+	end
+end)
